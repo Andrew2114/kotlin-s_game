@@ -1,11 +1,11 @@
-# Class Diagram - Mastermind Game Administration System
+# Class Diagram - Mastermind Game Administration (Simplified)
 ## Homework 1 - Architecture Design
 
-## Full Class Diagram
+## Class Diagram
 
 ```mermaid
 classDiagram
-    %% ============ DOMAIN LAYER ============
+    %% ============ МОДЕЛИ ДАННЫХ ============
     class Color {
         <<enumeration>>
         RED
@@ -16,141 +16,91 @@ classDiagram
         PURPLE
         +displayName: String
         +colorCode: String
-        +fromString(value: String): Color?
     }
     
     class Combination {
         +colors: List~Color~
         +validate(): Boolean
         +toString(): String
-        +equals(other: Any?): Boolean
     }
     
     class Feedback {
         +blackPins: Int
         +whitePins: Int
         +isWinning(): Boolean
-        +toString(): String
     }
     
     class Move {
         +moveNumber: Int
         +guess: Combination
         +feedback: Feedback
-        +timestamp: LocalDateTime
-    }
-    
-    class GameStatus {
-        <<enumeration>>
-        IN_PROGRESS
-        WON
-        LOST
+        +timestamp: String
     }
     
     class Game {
         +id: String
         +playerId: String
+        +playerName: String
         +secretCombination: Combination
         +moves: MutableList~Move~
-        +status: GameStatus
-        +createdAt: LocalDateTime
-        +finishedAt: LocalDateTime?
+        +status: String
+        +createdAt: String
+        +finishedAt: String?
         +addMove(move: Move): Boolean
-        +isCompleted(): Boolean
-        +getCurrentMoveNumber(): Int
+        +isWon(): Boolean
+        +isLost(): Boolean
     }
     
     class Player {
         +id: String
         +name: String
-        +registeredAt: LocalDateTime
+        +registeredAt: String
     }
     
-    %% ============ RULES ============
+    %% ============ ПРАВИЛА ============
     class MastermindRules {
-        <<interface>>
-        +CODE_LENGTH: Int
-        +MAX_MOVES: Int
+        +CODE_LENGTH: Int = 4
+        +MAX_MOVES: Int = 10
         +calculateFeedback(guess: Combination, secret: Combination): Feedback
         +validateGuess(guess: Combination): Boolean
-        +isGameOver(moves: List~Move~): Boolean
-    }
-    
-    class MastermindRulesImpl {
         -calculateBlackPins(guess: Combination, secret: Combination): Int
         -calculateWhitePins(guess: Combination, secret: Combination): Int
     }
     
-    %% ============ PORTS ============
-    class GameRepository {
-        <<interface>>
-        +save(game: Game): Game
-        +findById(id: String): Game?
-        +findAll(): List~Game~
-        +findByPlayer(playerId: String): List~Game~
-        +delete(id: String): Boolean
-        +update(game: Game): Game
+    %% ============ СЕРВИСЫ (ВСЯ ЛОГИКА) ============
+    class GameService {
+        -rules: MastermindRules
+        -repository: GameRepository
+        +createGame(playerId: String, playerName: String, secret: Combination): Game
+        +makeMove(gameId: String, guess: Combination): Move
+        +validateMove(gameId: String, guess: Combination): Boolean
+        +getGame(gameId: String): Game?
+        +getAllGames(): List~Game~
+        +getGamesByPlayer(playerId: String): List~Game~
     }
     
-    class StatisticsCalculator {
-        <<interface>>
-        +calculateWinRate(playerId: String): Double
-        +calculateAverageMovesToWin(playerId: String): Double
+    class StatisticsService {
+        -repository: GameRepository
+        +getWinRate(playerId: String): Double
+        +getAverageMovesToWin(playerId: String): Double
         +getTotalGames(playerId: String): Int
         +getWins(playerId: String): Int
         +getLosses(playerId: String): Int
-        +getRanking(): List~PlayerStats~
+        +getPlayerRanking(): List~PlayerStats~
+        +getBestPlayer(): String
     }
     
-    %% ============ APPLICATION LAYER ============
-    class CreateGameUseCase {
-        +execute(playerId: String, secret: Combination): Game
-    }
-    
-    class MakeMoveUseCase {
-        -rules: MastermindRules
-        -repository: GameRepository
-        +execute(gameId: String, guess: Combination): MoveResult
-    }
-    
-    class ValidateMoveUseCase {
-        -rules: MastermindRules
-        +execute(guess: Combination, secret: Combination): ValidationResult
-    }
-    
-    class GetGameHistoryUseCase {
-        -repository: GameRepository
-        +execute(playerId: String?): List~Game~
-    }
-    
-    class GetPlayerStatisticsUseCase {
-        -statistics: StatisticsCalculator
-        +execute(playerId: String): PlayerStatistics
-    }
-    
-    %% ============ DTOs ============
-    class GameDTO {
-        +id: String
-        +playerName: String
-        +movesCount: Int
-        +status: String
-        +result: String
-        +createdAt: LocalDateTime
-    }
-    
-    class PlayerStatistics {
+    class PlayerStats {
         +playerId: String
         +playerName: String
-        +winRate: Double
-        +avgMovesToWin: Double
-        +totalGames: Int
+        +gamesPlayed: Int
         +wins: Int
-        +losses: Int
-        +rank: Int
+        +winRate: Double
+        +avgMoves: Double
     }
     
-    %% ============ INFRASTRUCTURE ============
-    class DatabaseManager {
+    %% ============ БАЗА ДАННЫХ ============
+    class DatabaseHelper {
         -connection: Connection
         +initDatabase(): Boolean
         +executeUpdate(sql: String, params: List~Any?~): Int
@@ -158,61 +108,55 @@ classDiagram
         +close(): Unit
     }
     
-    class GameRepositoryImpl {
-        -db: DatabaseManager
-        +save(game: Game): Game
+    class GameRepository {
+        -db: DatabaseHelper
+        +save(game: Game): Boolean
         +findById(id: String): Game?
         +findAll(): List~Game~
-        -mapResultSetToGame(rs: ResultSet): Game
+        +findByPlayer(playerId: String): List~Game~
+        +update(game: Game): Boolean
+        +delete(id: String): Boolean
+        -mapToGame(rs: ResultSet): Game
+        -mapToMove(rs: ResultSet): Move
     }
     
-    class StatisticsCalculatorImpl {
-        -gameRepository: GameRepository
-        +calculateWinRate(playerId: String): Double
-        +getRanking(): List~PlayerStats~
+    %% ============ GUI (MVVM упрощенно) ============
+    class MainWindow {
+        -gameService: GameService
+        -statsService: StatisticsService
+        +show(): Unit
+        +refreshGameList(): Unit
+        +refreshStats(): Unit
     }
     
-    %% ============ PRESENTATION (MVVM) ============
-    class GameViewModel {
-        -createGameUseCase: CreateGameUseCase
-        -makeMoveUseCase: MakeMoveUseCase
-        +currentGame: MutableState~Game?~
-        +currentGuess: MutableState~Combination~
-        +createNewGame(playerId: String, secret: Combination): Unit
-        +makeMove(guess: Combination): Unit
+    class GamePanel {
+        -currentGame: Game?
+        +displayGame(game: Game): Unit
+        +onMoveSubmitted(guess: Combination): Unit
+        +showFeedback(feedback: Feedback): Unit
     }
     
-    class HistoryViewModel {
-        -getHistoryUseCase: GetGameHistoryUseCase
-        +games: MutableState~List~GameDTO~~
-        +loadHistory(playerId: String?): Unit
+    class HistoryPanel {
+        +displayGames(games: List~Game~): Unit
+        +displayStats(stats: PlayerStats): Unit
     }
     
-    class StatisticsViewModel {
-        -getStatsUseCase: GetPlayerStatisticsUseCase
-        +statistics: MutableState~PlayerStatistics?~
-        +loadStatistics(playerId: String): Unit
-    }
+    %% ============ СВЯЗИ ============
+    Game *-- Combination : secret
+    Game *-- Move : moves
+    Move *-- Combination : guess
+    Move *-- Feedback : feedback
     
-    %% ============ RELATIONSHIPS ============
-    Game *-- Combination
-    Game *-- Move
-    Move *-- Feedback
-    Game o-- Player
+    GameService --> MastermindRules
+    GameService --> GameRepository
+    StatisticsService --> GameRepository
     
-    MastermindRulesImpl ..|> MastermindRules
-    GameRepositoryImpl ..|> GameRepository
-    StatisticsCalculatorImpl ..|> StatisticsCalculator
+    GameRepository --> DatabaseHelper
     
-    CreateGameUseCase --> GameRepository
-    MakeMoveUseCase --> MastermindRules
-    MakeMoveUseCase --> GameRepository
-    GetGameHistoryUseCase --> GameRepository
-    GetPlayerStatisticsUseCase --> StatisticsCalculator
+    MainWindow --> GameService
+    MainWindow --> StatisticsService
+    MainWindow --> GamePanel
+    MainWindow --> HistoryPanel
     
-    DatabaseManager <-- GameRepositoryImpl
-    
-    GameViewModel --> CreateGameUseCase
-    GameViewModel --> MakeMoveUseCase
-    HistoryViewModel --> GetGameHistoryUseCase
-    StatisticsViewModel --> GetPlayerStatisticsUseCase
+    GamePanel --> GameService
+    HistoryPanel --> StatisticsService
