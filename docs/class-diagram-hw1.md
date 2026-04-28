@@ -47,6 +47,7 @@ classDiagram
     %% ============ USE CASE ============
     class GameUseCases {
         -MastermindRules rules
+        -GameRepository repo
         +createGame()
         +makeMove()
         +validateMove()
@@ -75,6 +76,7 @@ classDiagram
     Game --> Combination
     Move --> Combination
     GameUseCases --> MastermindRules
+    GameUseCases --> GameRepository 
     GameViewModel --> GameUseCases
     GameViewModel --> Game
     HistoryViewModel --> GameUseCases
@@ -134,7 +136,7 @@ classDiagram
     
     %% ============ СВЯЗИ ============
     StatisticsUseCases --> GameRepository
-    StatisticsUseCases --> PlayerStats
+    StatisticsUseCases ..> PlayerStats
     
     StatisticsViewModel --> StatisticsUseCases
     StatisticsViewModel --> PlayerStats
@@ -184,6 +186,7 @@ classDiagram
     }
     
     %% ============ СВЯЗИ ============
-    MastermindRulesImpl --> MastermindRules
+    MastermindRulesImpl ..|> MastermindRules
+    GameRepositoryImpl ..|> GameRepository
     GameRepositoryImpl --> DatabaseManager
 ```
