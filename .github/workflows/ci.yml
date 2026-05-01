@@ -2,9 +2,9 @@ name: CI - Build and Test
 
 on:
   push:
-    branches: [ main, master, hw1, hw2 ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main, master, hw1, hw2 ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -27,14 +27,19 @@ jobs:
     - name: Make gradlew executable
       run: chmod +x gradlew
 
-    - name: Build and create JAR
-      run: ./gradlew clean build jar
+    - name: Build and run tests
+      run: ./gradlew clean build test
 
-    - name: Run application
-      run: ./gradlew run
-
-    - name: Upload JAR artifact
+    - name: Upload test report
+      if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: kotlin-game-jar
+        name: test-report
+        path: build/reports/tests/test/
+
+    - name: Upload JAR artifact (on success)
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: mastermind-game-jar
         path: build/libs/*.jar
