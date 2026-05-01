@@ -75,8 +75,7 @@ classDiagram
     Game --> Move
     Game --> Combination
     Move --> Combination
-    GameUseCases --> MastermindRules
-    GameUseCases --> GameRepository 
+    GameUseCases --> MastermindRules 
     GameViewModel --> GameUseCases
     GameViewModel --> Game
     HistoryViewModel --> GameUseCases
@@ -187,6 +186,5 @@ classDiagram
     
     %% ============ СВЯЗИ ============
     MastermindRulesImpl ..|> MastermindRules
-    GameRepositoryImpl ..|> GameRepository
     GameRepositoryImpl --> DatabaseManager
 ```
