@@ -44,8 +44,9 @@ classDiagram
         +CODE_LENGTH
     }
     
-    %% ============ USE CASE ============
+    %% ============ USE CASES ============
     class GameUseCases {
+        <<use case>>
         -MastermindRules rules
         -GameRepository repo
         +createGame()
@@ -54,32 +55,32 @@ classDiagram
         +getGameHistory()
     }
     
-    %% ============ VIEW MODELS ============
-    class GameViewModel {
+    %% ============ GUI VIEWS (вместо ViewModel) ============
+    class GameView {
+        <<gui>>
         -GameUseCases useCases
         -Game currentGame
-        +makeGuess()
-        +newGame()
-        +getCurrentFeedback()
-        +isGameFinished()
+        +makeMove()
+        +startNewGame()
+        +updateUI()
     }
     
-    class HistoryViewModel {
+    class HistoryView {
+        <<gui>>
         -GameUseCases useCases
         +loadHistory()
-        +getGamesByPlayer()
-        +getMoveHistory()
+        +showGameDetails()
     }
     
     %% ============ СВЯЗИ ============
     Game --> Move
     Game --> Combination
     Move --> Combination
-    GameUseCases --> MastermindRules 
-    GameViewModel --> GameUseCases
-    GameViewModel --> Game
-    HistoryViewModel --> GameUseCases
-    HistoryViewModel --> Game
+    GameUseCases --> MastermindRules
+    GameView --> GameUseCases
+    GameView --> Game
+    HistoryView --> GameUseCases
+    HistoryView --> Game
 ```
 
 #
@@ -103,6 +104,7 @@ classDiagram
     
     %% ============ USE CASES ============
     class StatisticsUseCases {
+        <<use case>>
         -GameRepository repo
         +getWinRate()
         +getAvgMoves()
@@ -121,24 +123,22 @@ classDiagram
         +int rank
     }
     
-    %% ============ VIEW MODEL ============
-    class StatisticsViewModel {
+    %% ============ GUI VIEW (вместо ViewModel) ============
+    class StatisticsView {
+        <<gui>>
         -StatisticsUseCases useCases
-        +ObservableList~PlayerStats~ statsList
-        +ObservableField~String~ selectedPlayerId
-        +loadStats()
+        -String currentPlayerId
+        -String currentPlayerName
         +refresh()
-        +sortByWinRate()
-        +sortByRank()
-        +exportToCSV()
+        +createPlayerSection()
+        +createRankingSection()
     }
     
     %% ============ СВЯЗИ ============
     StatisticsUseCases --> GameRepository
     StatisticsUseCases ..> PlayerStats
-    
-    StatisticsViewModel --> StatisticsUseCases
-    StatisticsViewModel --> PlayerStats
+    StatisticsView --> StatisticsUseCases
+    StatisticsView --> PlayerStats
 ```
 #
 #
