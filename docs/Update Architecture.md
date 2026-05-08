@@ -1,64 +1,36 @@
-# Class Diagram - Mastermind Game Administration (Simplified)
-## Homework 1 - Architecture Design
+# Обновленная Архитектура приложения Mastermind
 
-## Class Diagram_1
+Приложение построено на принципах **Clean Architecture** (Чистая архитектура) с разделением на слои:
 
+1. **Domain** — ядро бизнес-логики
+2. **Application** — сценарии использования (Use Cases)
+3. **Infrastructure** — реализации интерфейсов (БД, репозитории)
+4. **GUI** — графический интерфейс (JavaFX)
+
+## Диаграмма классов
+
+# Class Diagram_1
 ```mermaid
 classDiagram
     direction TB
     
-    %% ============ DOMAIN ENTITIES ============
-    class Color {
-        <<enum>>
-        RED
-        GREEN
-        BLUE
-        YELLOW
-        ORANGE
-        PURPLE
-    }
-    
-    class Combination {
-        <<data class>>
-        +List~Color~ colors
-        +validate()
-    }
-    
-    class Feedback {
-        <<data class>>
-        +int blackPins
-        +int whitePins
-        +isWinning()
-    }
-    
-    class Move {
-        <<data class>>
-        +int moveNumber
-        +Combination guess
-        +Feedback feedback
-        +timestamp
-    }
-    
+    %% DOMAIN MODELS
     class Game {
-        <<entity>>
         +String id
         +String playerId
         +String playerName
         +Combination secret
         +List~Move~ moves
         +GameStatus status
-        +addMove()
-        +isCompleted()
     }
     
-    %% ============ INTERFACES ============
+    
+    %% DOMAIN INTERFACES
     class MastermindRules {
         <<interface>>
         +calculateFeedback()
         +validateGuess()
         +isGameOver()
-        +MAX_MOVES
-        +CODE_LENGTH
     }
     
     class GameRepository {
@@ -66,12 +38,12 @@ classDiagram
         +save()
         +findById()
         +findAll()
-        +findByPlayer()
         +update()
         +delete()
+        +findByPlayer()
     }
     
-    %% ============ USE CASES ============
+    %% APPLICATION USE CASES
     class GameUseCases {
         -MastermindRules rules
         -GameRepository repo
@@ -88,7 +60,62 @@ classDiagram
         +getPlayerRanking()
     }
     
-    %% ============ DTO ============
+    %% GUI VIEWS
+    class GameView {
+        <<gui>>
+        -GameUseCases useCases
+        -Game currentGame
+        +makeMove()
+        +startNewGame()
+        +updateUI()
+    }
+    
+    class HistoryView {
+        <<gui>>
+        -GameUseCases useCases
+        +loadHistory()
+        +showGameDetails()
+    }
+    
+    %% СВЯЗИ   
+    GameUseCases --> MastermindRules
+    GameUseCases --> GameRepository
+    GameUseCases ..> Game
+    
+    StatisticsUseCases --> GameRepository
+    StatisticsUseCases ..> Game
+    
+    GameView --> GameUseCases
+    GameView --> Game
+    HistoryView --> GameUseCases
+    HistoryView --> Game
+```
+
+# Class Diagram_2
+```mermaid
+classDiagram
+    direction TB
+    
+    %% INTERFACES
+    class GameRepository {
+        <<interface>>
+        +save()
+        +findById()
+        +findAll()
+        +findByPlayer()
+        +update()
+        +delete()
+    }
+    
+    %% USE CASES
+    class StatisticsUseCases {
+        -GameRepository repo
+        +getWinRate()
+        +getAvgMoves()
+        +getPlayerRanking()
+    }
+    
+    %% DTO
     class PlayerStats {
         <<data class>>
         +String playerId
@@ -100,170 +127,101 @@ classDiagram
         +int rank
     }
     
-    %% ============ СВЯЗИ ============
-    Combination *-- Color
-    Game *-- Move
-    Game *-- Combination
-    Move *-- Combination
-    Move *-- Feedback
+    %% GUI VIEW
+    class StatisticsView {
+        <<gui>>
+        -StatisticsUseCases useCases
+        -String currentPlayerId
+        -String currentPlayerName
+        +refresh()
+        +createPlayerSection()
+        +createRankingSection()
+    }
     
-    GameUseCases --> MastermindRules
-    GameUseCases --> GameRepository
-    GameUseCases ..> Game
-    GameUseCases ..> Move
-    
+    %% СВЯЗИ
     StatisticsUseCases --> GameRepository
     StatisticsUseCases ..> PlayerStats
+    StatisticsView --> StatisticsUseCases
+    StatisticsView --> PlayerStats
 ```
-#
-#
 
-## Class Diagram_2
+# Class Diagram_3
 ```mermaid
 classDiagram
     direction TB
     
-    %% ============ ИНТЕРФЕЙСЫ (из ядра) ============
-    class GameRepository {
-        <<interface>>
-        +save()
-        +findById()
-        +findAll()
-        +findByPlayer()
-        +update()
-        +delete()
-    }
-    
+    %% DOMAIN INTERFACES
     class MastermindRules {
         <<interface>>
         +calculateFeedback()
         +validateGuess()
         +isGameOver()
-        +MAX_MOVES
-        +CODE_LENGTH
     }
     
-    %% ============ ИНФРАСТРУКТУРА ============
-    class DatabaseManager {
-        -Connection conn
-        +initDatabase()
-        +executeUpdate()
-        +executeQuery()
-        +close()
+    class GameRepository {
+        <<interface>>
+        +save()
+        +findById()
+        +findAll()
+        +update()
+        +delete()
+        +findByPlayer()
+    }
+    
+    %% INFRASTRUCTURE IMPLEMENTATIONS
+    class MastermindRulesImpl {
+        +calculateFeedback()
+        +validateGuess()
+        +isGameOver()
+        -calculateBlackPins()
+        -calculateWhitePins()
     }
     
     class GameRepositoryImpl {
         -DatabaseManager db
-        -mapToGame()
-        -mapToMove()
         +save()
         +findById()
         +findAll()
+        +update()
+        +delete()
+        +findByPlayer()
+        -mapToGame()
+        -mapToMove()
+        -saveMove()
     }
     
-    class MastermindRulesImpl {
-        -calculateBlackPins()
-        -calculateWhitePins()
-        +calculateFeedback()
-        +validateGuess()
-        +isGameOver()
+    class PlayerRepository {
+        -DatabaseManager db
+        +save()
+        +findById()
+        +findByName()
+        +findAll()
+        +existsByName()
     }
     
-    %% ============ USE CASES (из ядра) ============
-    class GameUseCases {
-        -MastermindRules rules
-        -GameRepository repo
-        +createGame()
-        +makeMove()
-        +validateMove()
-        +getGameHistory()
+    class DatabaseManager {
+        -Connection connection
+        +connect()
+        +executeUpdate()
+        +executeQuery()
+        +close()
+        -createTables()
     }
     
-    class StatisticsUseCases {
-        -GameRepository repo
-        +getWinRate()
-        +getAvgMoves()
-        +getPlayerRanking()
-    }
-    
-    %% ============ ENTITIES (из ядра) ============
-    class Game {
-        <<entity>>
+    %% DATA CLASS
+    class Player {
+        <<data class>>
         +String id
-        +String playerId
-        +String playerName
-        +Combination secret
-        +List~Move~ moves
-        +addMove()
+        +String name
+        +Long? createdAt
     }
     
-    class Move {
-        <<data class>>
-        +int moveNumber
-        +Combination guess
-        +Feedback feedback
-    }
-    
-    class PlayerStats {
-        <<data class>>
-        +String playerId
-        +String playerName
-        +int gamesPlayed
-        +int wins
-        +double winRate
-    }
-    
-    %% ============ VIEWMODELS ============
-    class GameViewModel {
-        -GameUseCases useCases
-        +currentGame
-        +currentGuess
-        +createGame()
-        +makeMove()
-    }
-    
-    class HistoryViewModel {
-        -GameUseCases useCases
-        +games
-        +loadHistory()
-    }
-    
-    class StatisticsViewModel {
-        -StatisticsUseCases useCases
-        +statistics
-        +ranking
-        +loadStatistics()
-        +loadRanking()
-    }
-    
-    %% ============ СВЯЗИ ============
-    
-    %% Реализации интерфейсов
+    %% СВЯЗИ
     MastermindRulesImpl ..|> MastermindRules
     GameRepositoryImpl ..|> GameRepository
     
-    %% Инфраструктура
     GameRepositoryImpl --> DatabaseManager
-    GameRepositoryImpl ..> Game
-    GameRepositoryImpl ..> Move
+    PlayerRepository --> DatabaseManager
     
-    %% Use Cases используют интерфейсы
-    GameUseCases --> MastermindRules
-    GameUseCases --> GameRepository
-    StatisticsUseCases --> GameRepository
-    
-    %% Use Cases возвращают сущности
-    GameUseCases ..> Game
-    GameUseCases ..> Move
-    StatisticsUseCases ..> PlayerStats
-    
-    %% ViewModels используют Use Cases
-    GameViewModel --> GameUseCases
-    HistoryViewModel --> GameUseCases
-    StatisticsViewModel --> StatisticsUseCases
-    
-    %% ViewModel отображает DTO
-    StatisticsViewModel ..> PlayerStats
+    PlayerRepository ..> Player
 ```
-
-
