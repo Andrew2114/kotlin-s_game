@@ -27,12 +27,11 @@ class MastermindRulesImpl : MastermindRules {
                 guessRemaining.add(guessList[i])
             }
         }
-
-        // ВАЖНО: итерируем по цветам, а не по индексам
+        
         for (color in guessRemaining) {
             if (secretRemaining.contains(color)) {
                 whiteCnt++
-                secretRemaining.remove(color)  // remove(Object) работает в Kotlin
+                secretRemaining.remove(color) 
             }
         }
 
