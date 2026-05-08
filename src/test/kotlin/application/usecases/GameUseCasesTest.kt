@@ -77,11 +77,9 @@ class GameUseCasesTest {
         val secret = Combination(listOf(Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW))
         val game = gameUseCases.createGame("player1", "Alice", secret)
 
-        // Побеждаем в игре
         val winningGuess = Combination(listOf(Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW))
         gameUseCases.makeMove(game.id, winningGuess)
 
-        // Пытаемся сделать ещё ход
         val extraGuess = Combination(listOf(Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW))
 
         val exception = assertThrows(IllegalStateException::class.java) {
@@ -105,7 +103,6 @@ class GameUseCasesTest {
         val secret = Combination(listOf(Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW))
         val game = gameUseCases.createGame("player1", "Alice", secret)
 
-        // Неправильная длина комбинации
         val invalidGuess = Combination(listOf(Color.RED, Color.GREEN, Color.BLUE))
 
         val exception = assertThrows(IllegalArgumentException::class.java) {
@@ -139,7 +136,6 @@ class GameUseCasesTest {
         val secret = Combination(listOf(Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW))
         val game = gameUseCases.createGame("player1", "Alice", secret)
 
-        // Завершаем игру
         val winningGuess = Combination(listOf(Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW))
         gameUseCases.makeMove(game.id, winningGuess)
 
@@ -171,7 +167,6 @@ class GameUseCasesTest {
         val secret = Combination(listOf(Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW))
         val game = gameUseCases.createGame("player1", "Alice", secret)
 
-        // Делаем 12 неправильных ходов (MAX_MOVES = 12)
         val wrongGuess = Combination(listOf(Color.PURPLE, Color.PURPLE, Color.PURPLE, Color.PURPLE))
 
         for (i in 1..MastermindRules.MAX_MOVES) {
@@ -180,8 +175,7 @@ class GameUseCasesTest {
 
         val updatedGame = repository.findById(game.id)!!
         assertEquals(GameStatus.LOST, updatedGame.status)
-
-        // Попытка сделать ещё ход должна выбросить исключение
+        
         val exception = assertThrows(IllegalStateException::class.java) {
             gameUseCases.makeMove(game.id, wrongGuess)
         }
