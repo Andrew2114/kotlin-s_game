@@ -1,10 +1,9 @@
 import application.usecases.GameUseCases
 import application.usecases.StatisticsUseCases
 import domain.models.*
-import infrastructure.rules.MastermindRulesImpl
+import domain.rules.MastermindRules
 import infrastructure.repositories.InMemoryGameRepository
-import domain.rules.MastermindRules.Companion.MAX_MOVES
-import domain.rules.MastermindRules.Companion.CODE_LENGTH
+import infrastructure.rules.MastermindRulesImpl
 
 fun main() {
     val repository = InMemoryGameRepository()
@@ -23,25 +22,39 @@ class MastermindConsole(
     private var currentGame: Game? = null
     private var currentPlayerId: String = "default-player"
     private var currentPlayerName: String = "Player"
+    private var player1Id: String = ""
+    private var player2Id: String = ""
+    private var player1Name: String = ""
+    private var player2Name: String = ""
 
     fun start() {
         println("=".repeat(50))
-        println("   Добро пожаловать в игру  MASTERMIND")
+        println("   Добро пожаловать в игру MASTERMIND")
         println("=".repeat(50))
         println()
 
+        // Ввод имён игроков
+        println("Введите имя первого игрока:")
+        player1Name = readlnOrNull()?.trim()?.takeIf { it.isNotEmpty() } ?: "Player1"
+        player1Id = "player_${System.currentTimeMillis()}_1"
+
+        println("Введите имя второго игрока:")
+        player2Name = readlnOrNull()?.trim()?.takeIf { it.isNotEmpty() } ?: "Player2"
+        player2Id = "player_${System.currentTimeMillis()}_2"
+
         while (true) {
             showMainMenu()
-            when (readlnOrNull()?.trim()) {
+            val input = readlnOrNull()?.trim()
+
+            when (input) {
                 "1" -> startNewGame()
                 "2" -> makeMove()
                 "3" -> showStatistics()
                 "4" -> showGameHistory()
                 "5" -> {
-                    println("Спасибо за игру! До встречи!)")
+                    println("Спасибо за игру! До встречи!")
                     return
                 }
-
                 else -> println("Неверный выбор. Попробуйте снова.")
             }
         }
@@ -53,12 +66,12 @@ class MastermindConsole(
         println("Главное Меню")
         println("-".repeat(50))
         println("1. Новая игра")
-        println("2. Сделать ход" + if (currentGame == null) " (сначала начните новую игру) " else "")
+        println("2. Сделать ход" + if (currentGame == null) " (сначала начните новую игру)" else "")
         println("3. Статистика игрока")
         println("4. История игр")
         println("5. Выход")
         println("-".repeat(50))
-        println("Ваш выбор: ")
+        print("Ваш выбор: ")
     }
 
     private fun startNewGame() {
@@ -66,25 +79,44 @@ class MastermindConsole(
         println("Новая игра")
         println("-".repeat(30))
 
-        println("Введите ваше имя: ")
-        val name = readlnOrNull()?.trim()?.takeIf { it.isNotEmpty() } ?: "Player"
-        currentPlayerName = name
-        currentPlayerId = "player_${System.currentTimeMillis()}"
-
-        println("Загадана секретная комбинация из 4 цветов.")
+        // Ввод секретной комбинации
+        println("Введите секретную комбинацию из 4 цветов:")
         println("Доступные цвета: ${Color.entries.joinToString { it.name }}")
-        println("Комбинация может содержать повторяющиеся цвета.")
-        println()
-        println("Цель: отгадать комбинацию за $MAX_MOVES ходов")
-        println("Черный пин = правильный цвет на правильной позиции")
-        println("Белый пин = правильный цвет на неправильной позиции")
+        println("Пример: RED,GREEN,BLUE,YELLOW")
+        print("Введите комбинацию: ")
 
-        val secret = generateRandomSecret()
-        currentGame = gameUseCases.createGame(currentPlayerId, currentPlayerName, secret)
+        val input = readlnOrNull()?.trim()?.uppercase()
+        val secret = parseCombination(input)
+
+        if (secret == null) {
+            println("Ошибка: неверная комбинация. Игра не создана.")
+            return
+        }
+
+        currentGame = gameUseCases.createGame(
+            player1Id, player1Name,
+            player2Id, player2Name,
+            secret
+        )
+        currentPlayerId = player1Id
+        currentPlayerName = player1Name
 
         println()
-        println("Игра создана! ID игры: ${currentGame?.id?.take(8)}...")
+        println("Игра создана! Ходит: $currentPlayerName")
         println("Попробуйте отгадать комбинацию!")
+    }
+
+    private fun parseCombination(input: String?): Combination? {
+        if (input.isNullOrBlank()) return null
+
+        val parts = input.split(",").map { it.trim().uppercase() }
+        if (parts.size != MastermindRules.CODE_LENGTH) return null
+
+        val colors = parts.mapNotNull { colorName ->
+            Color.entries.find { it.name == colorName }
+        }
+
+        return if (colors.size == MastermindRules.CODE_LENGTH) Combination(colors) else null
     }
 
     private fun makeMove() {
@@ -104,29 +136,24 @@ class MastermindConsole(
         }
 
         println()
-        println("Ход №${game.moves.size + 1} из $MAX_MOVES")
+        println("Ход №${game.moves.size + 1} из ${MastermindRules.MAX_MOVES}")
+        println("Ходит: $currentPlayerName")
         println("-".repeat(30))
         println("Доступные цвета: ${Color.entries.joinToString { it.name }}")
         println("Пример ввода: RED, GREEN, BLUE, YELLOW")
         print("Введите 4 цвета через запятую: ")
 
         val input = readlnOrNull()?.trim()
-        val guess = parseGuess(input)
+        val guess = parseCombination(input)
 
         if (guess == null) {
             println("Ошибка: Неверный формат или цвет. Попробуйте снова.")
             return
         }
 
-        if (!gameUseCases.validateMove(game, guess)) {
-            println("Комбинация недействительна. Попробуйте снова.")
-            return
-        }
-
         try {
-            val move = gameUseCases.makeMove(game.id, guess)
-            currentGame = gameUseCases.getGameHistory(currentPlayerId).find { it.id == game.id }
-            val updatedGame = currentGame ?: game
+            val move = gameUseCases.makeMove(game.id, currentPlayerId, guess)
+            currentGame = gameUseCases.findById(game.id)
 
             println()
             println("Результат хода: ")
@@ -135,18 +162,20 @@ class MastermindConsole(
             println()
 
             when {
-                move.feedback.blackPins == CODE_LENGTH -> {
-                    println("Поздравляю! Вы отгадали комбинацию!")
-                    println("Количество ходов: ${move.moveNumber}")
+                move.feedback.blackPins == MastermindRules.CODE_LENGTH -> {
+                    println("ПОБЕДА! Победил $currentPlayerName!")
                     currentGame = null
                 }
-                updatedGame.moves.size >= MAX_MOVES -> {
-                    println("Игра окончена. Вы использовали все $MAX_MOVES ходов")
-                    println("Секретная комбинация: ${updatedGame.secret.colors.joinToString { it.name }}")
+                (currentGame?.moves?.size ?: 0) >= MastermindRules.MAX_MOVES -> {
+                    println("ПОРАЖЕНИЕ! Игроки не отгадали комбинацию")
+                    println("Секретная комбинация: ${game.secret.colors.joinToString { it.name }}")
                     currentGame = null
                 }
                 else -> {
-                    println("Осталось ходов: ${MAX_MOVES - updatedGame.moves.size}")
+                    // Переключаем игрока
+                    currentPlayerId = if (currentPlayerId == player1Id) player2Id else player1Id
+                    currentPlayerName = if (currentPlayerName == player1Name) player2Name else player1Name
+                    println("Переход хода к: $currentPlayerName")
                 }
             }
         } catch (e: Exception) {
@@ -166,10 +195,10 @@ class MastermindConsole(
             println("   Игр сыграно: ${myStats.gamesPlayed}")
             println("   Побед: ${myStats.wins}")
             println("   Процент побед: ${String.format("%.1f", myStats.winRate * 100)}%")
-            println("   Среднее количество ходов: ${String.format("%.1f", myStats.avgMoves)}")
+            println("   Среднее число ходов: ${String.format("%.1f", myStats.avgMoves)}")
             println("   Место в рейтинге: ${myStats.rank}")
         } else {
-            println("   Нет незавершенных игр")
+            println("   Нет завершённых игр")
         }
 
         println()
@@ -177,7 +206,7 @@ class MastermindConsole(
         println("-".repeat(30))
         ranking.take(5).forEachIndexed { index, stats ->
             println(
-                "${index + 1}. ${stats.playerName} - ${String.format("%.1f", stats.winRate * 100)}%  побед " +
+                "${index + 1}. ${stats.playerName} - ${String.format("%.1f", stats.winRate * 100)}% побед " +
                         "(${stats.wins}/${stats.gamesPlayed})"
             )
         }
@@ -191,48 +220,17 @@ class MastermindConsole(
         val games = gameUseCases.getGameHistory(currentPlayerId)
 
         if (games.isEmpty()) {
-            println("   Нет незавершенных игр")
+            println("   Нет завершённых игр")
         } else {
             games.forEachIndexed { index, game ->
-                val result = when (game.status) {
-                    GameStatus.WON -> "Победа!"
-                    GameStatus.LOST -> "Поражение!"
-                    GameStatus.IN_PROGRESS -> "В процессе!"
+                val winner = game.winnerId
+                val result = when {
+                    winner == currentPlayerId -> "Победа! 🎉"
+                    game.status == GameStatus.LOST -> "Поражение! 😔"
+                    else -> "В процессе ⏳"
                 }
-
-                println("${index + 1}. Игра от ${game.id.take(8)}... - $result (${game.moves.size} ходов)")
-
-                if (game.moves.isNotEmpty()) {
-                    println("   Секретная комбинация: ${game.secret.colors.joinToString { it.name }}")
-                }
+                println("${index + 1}. Игра ${game.id.take(8)} - $result (${game.moves.size} ходов)")
             }
         }
-    }
-
-    private fun parseGuess(input: String?): Combination? {
-        if (input.isNullOrBlank()) return null
-
-        val parts = input.split(",").map { it.trim().uppercase() }
-        if (parts.size != CODE_LENGTH) {
-            return null
-        }
-
-        val colors = parts.mapNotNull { colorName ->
-            Color.entries.find { it.name == colorName }
-        }
-
-        return if (colors.size == CODE_LENGTH) Combination(colors) else null
-    }
-
-    private fun generateRandomSecret() : Combination {
-        val colors = List(CODE_LENGTH) {
-            Color.entries.random()
-        }
-        return Combination(colors)
-    }
-
-    companion object {
-        const val MAX_MOVES = 12
-        const val CODE_LENGTH = 4
     }
 }
