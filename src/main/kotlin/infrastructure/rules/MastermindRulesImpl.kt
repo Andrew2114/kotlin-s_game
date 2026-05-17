@@ -11,7 +11,6 @@ class MastermindRulesImpl : MastermindRules {
         val secretList = secret.colors.toMutableList()
         val guessList = guess.colors.toMutableList()
 
-        // Подсчёт чёрных пинов
         val indicesToRemove = mutableListOf<Int>()
         for (i in secretList.indices) {
             if (secretList[i] == guessList[i]) {
@@ -25,7 +24,6 @@ class MastermindRulesImpl : MastermindRules {
             guessList.removeAt(i)
         }
 
-        // Подсчёт белых пинов
         val secretRemaining = secretList.toMutableList()
         val guessRemaining = guessList.toMutableList()
 

@@ -26,7 +26,6 @@ class MainApp : Application() {
     private lateinit var historyTab: Tab
 
     override fun start(primaryStage: Stage) {
-        // Ввод имён двух игроков
         val name1 = askPlayerName("Введите имя первого игрока")
         if (name1.isNullOrBlank()) {
             showError("Имя первого игрока не введено. Приложение закрывается.")
@@ -44,7 +43,6 @@ class MainApp : Application() {
         player1 = Player("player_${System.currentTimeMillis()}_1", name1)
         player2 = Player("player_${System.currentTimeMillis()}_2", name2)
 
-        // Инициализация репозитория и use cases
         val repository = InMemoryGameRepository()
         val rules = MastermindRulesImpl()
 
@@ -56,7 +54,6 @@ class MainApp : Application() {
 
         tabPane = TabPane()
 
-        // Вкладка "Игра"
         val gameTab = Tab("Игра")
         gameTab.isClosable = false
         gameView = GameView(
@@ -67,7 +64,6 @@ class MainApp : Application() {
         )
         gameTab.content = gameView.root
 
-        // Вкладка "Статистика"
         statsTab = Tab("Статистика")
         statsTab.isClosable = false
         updateStatisticsView()
@@ -79,7 +75,6 @@ class MainApp : Application() {
             }
         }
 
-        // Вкладка "История"
         historyTab = Tab("История")
         historyTab.isClosable = false
         updateHistoryView()

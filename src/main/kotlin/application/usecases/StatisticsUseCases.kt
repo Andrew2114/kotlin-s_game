@@ -28,17 +28,14 @@ class StatisticsUseCases(
     fun getPlayerRanking(): List<PlayerStats> {
         val allGames = repo.getAllGames()
 
-        // Собираем всех уникальных игроков из всех игр
         val playersMap = mutableMapOf<String, MutableList<Game>>()
 
         for (game in allGames) {
-            // Добавляем первого игрока
             if (!playersMap.containsKey(game.player1Id)) {
                 playersMap[game.player1Id] = mutableListOf()
             }
             playersMap[game.player1Id]?.add(game)
 
-            // Добавляем второго игрока
             if (!playersMap.containsKey(game.player2Id)) {
                 playersMap[game.player2Id] = mutableListOf()
             }

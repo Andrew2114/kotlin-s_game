@@ -15,7 +15,7 @@ class InMemoryGameRepository : GameRepository {
 
     override fun findAll(): List<Game> = games.values.toList()
 
-    override fun getAllGames(): List<Game> = games.values.toList()  // ← добавить
+    override fun getAllGames(): List<Game> = games.values.toList()
 
     override fun update(game: Game): Game {
         if (!games.containsKey(game.id)) {

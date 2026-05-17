@@ -33,7 +33,6 @@ class MastermindConsole(
         println("=".repeat(50))
         println()
 
-        // Ввод имён игроков
         println("Введите имя первого игрока:")
         player1Name = readlnOrNull()?.trim()?.takeIf { it.isNotEmpty() } ?: "Player1"
         player1Id = "player_${System.currentTimeMillis()}_1"
@@ -79,7 +78,6 @@ class MastermindConsole(
         println("Новая игра")
         println("-".repeat(30))
 
-        // Ввод секретной комбинации
         println("Введите секретную комбинацию из 4 цветов:")
         println("Доступные цвета: ${Color.entries.joinToString { it.name }}")
         println("Пример: RED,GREEN,BLUE,YELLOW")
@@ -172,7 +170,6 @@ class MastermindConsole(
                     currentGame = null
                 }
                 else -> {
-                    // Переключаем игрока
                     currentPlayerId = if (currentPlayerId == player1Id) player2Id else player1Id
                     currentPlayerName = if (currentPlayerName == player1Name) player2Name else player1Name
                     println("Переход хода к: $currentPlayerName")
