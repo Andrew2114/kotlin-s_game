@@ -88,13 +88,11 @@ class GameIntegrationTest {
         val secret = Combination(listOf(Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW))
         val correctGuess = Combination(listOf(Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW))
 
-        // Игра 1: победа player1 за 2 хода
         val game1 = gameUseCases.createGame(player1Id, player1Name, player2Id, player2Name, secret)
         val wrongGuess = Combination(listOf(Color.PURPLE, Color.PURPLE, Color.PURPLE, Color.PURPLE))
         gameUseCases.makeMove(game1.id, player1Id, wrongGuess)
         gameUseCases.makeMove(game1.id, player1Id, correctGuess)
 
-        // Игра 2: победа player1 за 1 ход
         val game2 = gameUseCases.createGame(player1Id, player1Name, "player3", "Charlie", secret)
         gameUseCases.makeMove(game2.id, player1Id, correctGuess)
 

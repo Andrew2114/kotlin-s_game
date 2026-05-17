@@ -11,7 +11,6 @@ class StatisticsUseCases(
     fun getWinRate(playerId: String): Double {
         val games = repo.findByPlayer(playerId)
         if (games.isEmpty()) return 0.0
-
         val wins = games.count { it.winnerId == playerId }
         return wins.toDouble() / games.size
     }
@@ -20,7 +19,6 @@ class StatisticsUseCases(
         val games = repo.findByPlayer(playerId)
         val wonGames = games.filter { it.winnerId == playerId }
         if (wonGames.isEmpty()) return 0.0
-
         val totalMoves = wonGames.sumOf { it.moves.size }
         return totalMoves.toDouble() / wonGames.size
     }
@@ -28,17 +26,14 @@ class StatisticsUseCases(
     fun getPlayerRanking(): List<PlayerStats> {
         val allGames = repo.getAllGames()
 
-        // Собираем всех уникальных игроков из всех игр
         val playersMap = mutableMapOf<String, MutableList<Game>>()
 
         for (game in allGames) {
-            // Добавляем первого игрока
             if (!playersMap.containsKey(game.player1Id)) {
                 playersMap[game.player1Id] = mutableListOf()
             }
             playersMap[game.player1Id]?.add(game)
 
-            // Добавляем второго игрока
             if (!playersMap.containsKey(game.player2Id)) {
                 playersMap[game.player2Id] = mutableListOf()
             }

@@ -3,6 +3,7 @@ package gui
 import application.dtos.PlayerStats
 import application.usecases.StatisticsUseCases
 import javafx.beans.property.SimpleObjectProperty
+import infrastructure.repositories.Player
 import javafx.scene.control.*
 import javafx.scene.layout.*
 import javafx.util.Callback

@@ -1,4 +1,4 @@
-package gui
+package infrastructure.repositories
 
 data class Player(
     val id: String,

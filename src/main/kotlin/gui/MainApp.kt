@@ -2,7 +2,10 @@ package gui
 
 import application.usecases.GameUseCases
 import application.usecases.StatisticsUseCases
-import infrastructure.repositories.InMemoryGameRepository
+import infrastructure.database.DatabaseManager
+import infrastructure.repositories.GameRepositoryImpl
+import infrastructure.repositories.PlayerRepository
+import infrastructure.repositories.Player
 import infrastructure.rules.MastermindRulesImpl
 import javafx.application.Application
 import javafx.scene.Scene
@@ -26,37 +29,27 @@ class MainApp : Application() {
     private lateinit var historyTab: Tab
 
     override fun start(primaryStage: Stage) {
-        // Ввод имён двух игроков
-        val name1 = askPlayerName("Введите имя первого игрока")
-        if (name1.isNullOrBlank()) {
-            showError("Имя первого игрока не введено. Приложение закрывается.")
-            primaryStage.close()
-            return
-        }
-
-        val name2 = askPlayerName("Введите имя второго игрока")
-        if (name2.isNullOrBlank()) {
-            showError("Имя второго игрока не введено. Приложение закрывается.")
-            primaryStage.close()
-            return
-        }
-
-        player1 = Player("player_${System.currentTimeMillis()}_1", name1)
-        player2 = Player("player_${System.currentTimeMillis()}_2", name2)
-
-        // Инициализация репозитория и use cases
-        val repository = InMemoryGameRepository()
+        val databaseManager = DatabaseManager()
+        val repository = GameRepositoryImpl(databaseManager)
+        val playerRepository = PlayerRepository(databaseManager)
         val rules = MastermindRulesImpl()
 
         gameUseCases = GameUseCases(rules, repository)
         statisticsUseCases = StatisticsUseCases(repository)
+
+        val players = selectTwoPlayers(playerRepository)
+        if (players == null) {
+            primaryStage.close()
+            return
+        }
+        player1 = players.first
+        player2 = players.second
 
         val currentPlayer = player1
         primaryStage.title = "Mastermind Admin - Ходит: ${currentPlayer.name}"
 
         tabPane = TabPane()
 
-        // Вкладка "Игра"
         val gameTab = Tab("Игра")
         gameTab.isClosable = false
         gameView = GameView(
@@ -67,7 +60,6 @@ class MainApp : Application() {
         )
         gameTab.content = gameView.root
 
-        // Вкладка "Статистика"
         statsTab = Tab("Статистика")
         statsTab.isClosable = false
         updateStatisticsView()
@@ -79,7 +71,6 @@ class MainApp : Application() {
             }
         }
 
-        // Вкладка "История"
         historyTab = Tab("История")
         historyTab.isClosable = false
         updateHistoryView()
@@ -96,6 +87,47 @@ class MainApp : Application() {
         val scene = Scene(tabPane, 800.0, 600.0)
         primaryStage.scene = scene
         primaryStage.show()
+    }
+
+    private fun selectTwoPlayers(playerRepository: PlayerRepository): Pair<Player, Player>? {
+        val existingPlayers = playerRepository.findAll()
+
+        fun selectPlayer(title: String): Player? {
+            if (existingPlayers.isEmpty()) {
+                val name = askPlayerName(title) ?: return null
+                val id = "player_${System.currentTimeMillis()}"
+                return Player(id, name)
+            } else {
+                val choiceDialog = ChoiceDialog("Новый игрок", listOf("Новый игрок") + existingPlayers.map { it.name })
+                choiceDialog.title = "Mastermind"
+                choiceDialog.headerText = title
+                choiceDialog.contentText = "Выберите игрока:"
+                val result = choiceDialog.showAndWait()
+                return when {
+                    result.isEmpty -> null
+                    result.get() == "Новый игрок" -> {
+                        val name = askPlayerName(title) ?: return null
+                        val id = "player_${System.currentTimeMillis()}"
+                        Player(id, name)
+                    }
+                    else -> {
+                        playerRepository.findByName(result.get())
+                    }
+                }
+            }
+        }
+
+        val p1 = selectPlayer("Выберите первого игрока") ?: return null
+        val p2 = selectPlayer("Выберите второго игрока") ?: return null
+
+        if (playerRepository.findByName(p1.name) == null) {
+            playerRepository.save(p1)
+        }
+        if (playerRepository.findByName(p2.name) == null && p1.name != p2.name) {
+            playerRepository.save(p2)
+        }
+
+        return Pair(p1, p2)
     }
 
     private fun updateStatisticsView() {
@@ -127,7 +159,6 @@ class MainApp : Application() {
         dialog.title = "Игрок"
         dialog.headerText = title
         dialog.contentText = "Введите имя игрока:"
-
         val result = dialog.showAndWait()
         return result.orElse(null)?.takeIf { it.isNotBlank() }
     }
@@ -136,17 +167,8 @@ class MainApp : Application() {
         currentPlayerIndex = (currentPlayerIndex + 1) % 2
         val currentPlayer = if (currentPlayerIndex == 0) player1 else player2
         primaryStage.title = "Mastermind Admin - Ходит: ${currentPlayer.name}"
-
         updateStatisticsView()
         updateHistoryView()
-    }
-
-    private fun showError(message: String) {
-        val alert = Alert(Alert.AlertType.ERROR)
-        alert.title = "Ошибка"
-        alert.headerText = null
-        alert.contentText = message
-        alert.showAndWait()
     }
 }
 
