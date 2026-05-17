@@ -27,11 +27,13 @@ class MastermindRulesImpl : MastermindRules {
         val secretRemaining = secretList.toMutableList()
         val guessRemaining = guessList.toMutableList()
 
+        
         for (color in guessRemaining) {
             val index = secretRemaining.indexOf(color)
             if (index != -1) {
                 whiteCnt++
                 secretRemaining.removeAt(index)
+                secretRemaining.remove(color) 
             }
         }
 
