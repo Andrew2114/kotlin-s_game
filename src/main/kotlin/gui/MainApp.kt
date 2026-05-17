@@ -172,4 +172,4 @@ class MainApp : Application() {
     }
 }
 
-fun main(): Unit = Application.launch(MainApp::class.java)
+fun main() = Application.launch(MainApp::class.java)
