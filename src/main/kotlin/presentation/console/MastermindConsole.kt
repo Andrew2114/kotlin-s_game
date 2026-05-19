@@ -2,9 +2,12 @@ package presentation.console
 
 import application.usecases.GameUseCases
 import application.usecases.StatisticsUseCases
-import domain.models.*
-import domain.rules.MastermindRules.Companion.MAX_MOVES
+import domain.models.Color
+import domain.models.Combination
+import domain.models.Game
+import domain.models.GameStatus
 import domain.rules.MastermindRules.Companion.CODE_LENGTH
+import domain.rules.MastermindRules.Companion.MAX_MOVES
 
 class MastermindConsole(
     private val gameUseCases: GameUseCases,
@@ -139,103 +142,5 @@ class MastermindConsole(
             Color.entries.random()
         }
         return Combination(colors)
-    }
-}
-
-Исправленный файл: presentation/console/MoveHandler.kt
-kotlin
-
-package presentation.console
-
-import application.usecases.GameUseCases
-import domain.models.*
-import domain.rules.MastermindRules.Companion.MAX_MOVES
-import domain.rules.MastermindRules.Companion.CODE_LENGTH
-
-class MoveHandler(
-    private val gameUseCases: GameUseCases
-) {
-    fun makeMove(
-        currentGame: Game?,
-        currentPlayerId: String
-    ): Game? {
-        if (currentGame == null) {
-            println()
-            println("Ошибка: Сначала начните новую игру (выберите пункт 1)")
-            return null
-        }
-
-        val game = currentGame
-
-        if (game.status != GameStatus.IN_PROGRESS) {
-            println()
-            println("Игра уже закончена. Начните новую игру (пункт 1)")
-            return null
-        }
-
-        println()
-        println("Ход №${game.moves.size + 1} из $MAX_MOVES")
-        println("-".repeat(30))
-        println("Доступные цвета: ${Color.entries.joinToString { it.name }}")
-        println("Пример ввода: RED, GREEN, BLUE, YELLOW")
-        print("Введите 4 цвета через запятую: ")
-
-        val input = readlnOrNull()?.trim()
-        val guess = parseGuess(input)
-
-        if (guess == null) {
-            println("Ошибка: Неверный формат или цвет. Попробуйте снова.")
-            return currentGame
-        }
-
-        if (!gameUseCases.validateMove(game, guess)) {
-            println("Комбинация недействительна. Попробуйте снова.")
-            return currentGame
-        }
-
-        try {
-            val move = gameUseCases.makeMove(game.id, guess)
-            var updatedGame = gameUseCases.getGameHistory(currentPlayerId).find { it.id == game.id }
-            if (updatedGame == null) updatedGame = game
-
-            println()
-            println("Результат хода: ")
-            println("   Черных пинов: ${move.feedback.blackPins}")
-            println("   Белых пинов: ${move.feedback.whitePins}")
-            println()
-
-            when {
-                move.feedback.blackPins == CODE_LENGTH -> {
-                    println("Поздравляю! Вы отгадали комбинацию!")
-                    println("Количество ходов: ${move.moveNumber}")
-                    return null
-                }
-                updatedGame.moves.size >= MAX_MOVES -> {
-                    println("Игра окончена. Вы использовали все $MAX_MOVES ходов")
-                    println("Секретная комбинация: ${updatedGame.secret.colors.joinToString { it.name }}")
-                    return null
-                }
-                else -> {
-                    println("Осталось ходов: ${MAX_MOVES - updatedGame.moves.size}")
-                    return updatedGame
-                }
-            }
-        } catch (e: Exception) {
-            println("Ошибка: ${e.message}")
-            return currentGame
-        }
-    }
-
-    private fun parseGuess(input: String?): Combination? {
-        if (input.isNullOrBlank()) return null
-
-        val parts = input.split(",").map { it.trim().uppercase() }
-        if (parts.size != CODE_LENGTH) return null
-
-        val colors = parts.mapNotNull { colorName ->
-            Color.entries.find { it.name == colorName }
-        }
-
-        return if (colors.size == CODE_LENGTH) Combination(colors) else null
     }
 }

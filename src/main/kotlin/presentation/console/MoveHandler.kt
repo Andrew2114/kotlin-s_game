@@ -1,17 +1,17 @@
 package presentation.console
 
 import application.usecases.GameUseCases
-import domain.models.*
-import domain.rules.MastermindRules.Companion.MAX_MOVES
+import domain.models.Color
+import domain.models.Combination
+import domain.models.Game
+import domain.models.GameStatus
 import domain.rules.MastermindRules.Companion.CODE_LENGTH
+import domain.rules.MastermindRules.Companion.MAX_MOVES
 
 class MoveHandler(
     private val gameUseCases: GameUseCases
 ) {
-    fun makeMove(
-        currentGame: Game?,
-        currentPlayerId: String
-    ): Game? {
+    fun makeMove(currentGame: Game?, currentPlayerId: String): Game? {
         if (currentGame == null) {
             println()
             println("Ошибка: Сначала начните новую игру (выберите пункт 1)")
@@ -46,10 +46,9 @@ class MoveHandler(
             return currentGame
         }
 
-        try {
+        return try {
             val move = gameUseCases.makeMove(game.id, guess)
-            var updatedGame = gameUseCases.getGameHistory(currentPlayerId).find { it.id == game.id }
-            if (updatedGame == null) updatedGame = game
+            val updatedGame = gameUseCases.getGameHistory(currentPlayerId).find { it.id == game.id } ?: game
 
             println()
             println("Результат хода: ")
@@ -61,21 +60,21 @@ class MoveHandler(
                 move.feedback.blackPins == CODE_LENGTH -> {
                     println("Поздравляю! Вы отгадали комбинацию!")
                     println("Количество ходов: ${move.moveNumber}")
-                    return null
+                    null
                 }
                 updatedGame.moves.size >= MAX_MOVES -> {
                     println("Игра окончена. Вы использовали все $MAX_MOVES ходов")
                     println("Секретная комбинация: ${updatedGame.secret.colors.joinToString { it.name }}")
-                    return null
+                    null
                 }
                 else -> {
                     println("Осталось ходов: ${MAX_MOVES - updatedGame.moves.size}")
-                    return updatedGame
+                    updatedGame
                 }
             }
         } catch (e: Exception) {
             println("Ошибка: ${e.message}")
-            return currentGame
+            currentGame
         }
     }
 
