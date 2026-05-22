@@ -2,6 +2,7 @@ package gui
 
 import application.usecases.GameUseCases
 import domain.models.Game
+import infrastructure.repositories.Player
 import domain.models.GameStatus
 import javafx.scene.control.*
 import javafx.scene.layout.VBox

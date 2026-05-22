@@ -11,7 +11,6 @@ class StatisticsUseCases(
     fun getWinRate(playerId: String): Double {
         val games = repo.findByPlayer(playerId)
         if (games.isEmpty()) return 0.0
-
         val wins = games.count { it.winnerId == playerId }
         return wins.toDouble() / games.size
     }
@@ -20,7 +19,6 @@ class StatisticsUseCases(
         val games = repo.findByPlayer(playerId)
         val wonGames = games.filter { it.winnerId == playerId }
         if (wonGames.isEmpty()) return 0.0
-
         val totalMoves = wonGames.sumOf { it.moves.size }
         return totalMoves.toDouble() / wonGames.size
     }

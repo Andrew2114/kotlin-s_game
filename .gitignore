@@ -14,12 +14,6 @@ out/
 .DS_Store
 Thumbs.db
 
-# Logs
-# Gradle
-.gradle/
-build/
-!gradle/wrapper/gradle-wrapper.jar
-
 # IDE
 .idea/
 *.iml

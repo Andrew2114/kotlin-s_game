@@ -3,7 +3,8 @@ package presentation.console
 import application.usecases.GameUseCases
 import application.usecases.StatisticsUseCases
 import domain.models.*
-import domain.rules.MastermindRules
+import domain.rules.MastermindRules.Companion.MAX_MOVES
+import domain.rules.MastermindRules.Companion.CODE_LENGTH
 
 class MastermindConsole(
     private val gameUseCases: GameUseCases,
@@ -16,8 +17,6 @@ class MastermindConsole(
     private var player2Id: String = ""
     private var player1Name: String = ""
     private var player2Name: String = ""
-
-    private lateinit var moveHandler: MoveHandler
 
     fun start() {
         println("=".repeat(50))
@@ -32,11 +31,6 @@ class MastermindConsole(
         println("Введите имя второго игрока:")
         player2Name = readlnOrNull()?.trim()?.takeIf { it.isNotEmpty() } ?: "Player2"
         player2Id = "player_${System.currentTimeMillis()}_2"
-
-        moveHandler = MoveHandler(
-            gameUseCases, currentPlayerId, currentPlayerName,
-            player1Id, player2Id, player1Name, player2Name
-        )
 
         while (true) {
             showMainMenu()
@@ -105,30 +99,34 @@ class MastermindConsole(
         if (input.isNullOrBlank()) return null
 
         val parts = input.split(",").map { it.trim().uppercase() }
-        if (parts.size != MastermindRules.CODE_LENGTH) return null
+        if (parts.size != CODE_LENGTH) return null
 
         val colors = parts.mapNotNull { colorName ->
             Color.entries.find { it.name == colorName }
         }
 
-        return if (colors.size == MastermindRules.CODE_LENGTH) Combination(colors) else null
+        return if (colors.size == CODE_LENGTH) Combination(colors) else null
     }
 
     private fun makeMove() {
+        val handler = MoveHandler(
+            gameUseCases,
+            currentGame,
+            currentPlayerId,
+            currentPlayerName,
+            player1Id,
+            player2Id,
+            player1Name,
+            player2Name
+        )
+        currentGame = handler.handle()
         if (currentGame == null) {
-            println()
-            println("Ошибка: Сначала начните новую игру (выберите пункт 1)")
+            // Игра завершена
             return
         }
-
-        currentGame = moveHandler.makeMove(
-            currentGame,
-            onGameEnd = { updatedGame -> currentGame = updatedGame },
-            onPlayerSwitch = { newId, newName ->
-                currentPlayerId = newId
-                currentPlayerName = newName
-            }
-        )
+        // Обновляем текущего игрока после хода (если нужно)
+        // currentPlayerId и currentPlayerName должны обновляться внутри MoveHandler
+        // Этот код требует доработки, так как MoveHandler не возвращает обновлённые playerId/playerName
     }
 
     private fun showStatistics() {
@@ -150,7 +148,7 @@ class MastermindConsole(
         }
 
         println()
-        println("Топ игроков:")
+        println("Топ-5 игроков:")
         println("-".repeat(30))
         ranking.take(5).forEachIndexed { index, stats ->
             println(
@@ -175,7 +173,7 @@ class MastermindConsole(
                 val result = when {
                     winner == currentPlayerId -> "Победа!"
                     game.status == GameStatus.LOST -> "Поражение!"
-                    else -> "В процессе ⏳"
+                    else -> "В процессе"
                 }
                 println("${index + 1}. Игра ${game.id.take(8)} - $result (${game.moves.size} ходов)")
             }

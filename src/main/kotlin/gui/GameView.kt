@@ -2,6 +2,7 @@ package gui
 
 import application.usecases.GameUseCases
 import domain.models.*
+import infrastructure.repositories.Player
 import domain.rules.MastermindRules.Companion.CODE_LENGTH
 import domain.rules.MastermindRules.Companion.MAX_MOVES
 import javafx.geometry.Insets
@@ -36,7 +37,6 @@ class GameView(
 
     init {
         setupUI()
-        startNewGame()
     }
 
     private fun setupUI() {

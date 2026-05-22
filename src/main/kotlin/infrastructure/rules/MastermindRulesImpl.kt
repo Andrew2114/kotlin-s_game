@@ -28,11 +28,21 @@ class MastermindRulesImpl : MastermindRules {
             }
         }
 
-        // ВАЖНО: итерируем по цветам, а не по индексам
+        indicesToRemove.sortedDescending().forEach { i ->
+            secretList.removeAt(i)
+            guessList.removeAt(i)
+        }
+
+        val secretRemaining = secretList.toMutableList()
+        val guessRemaining = guessList.toMutableList()
+
         for (color in guessRemaining) {
             if (secretRemaining.contains(color)) {
                 whiteCnt++
-                secretRemaining.remove(color)  // remove(Object) работает в Kotlin
+
+                secretRemaining.removeAt(index)
+                secretRemaining.remove(color) 
+                secretRemaining.remove(color) 
             }
         }
 
