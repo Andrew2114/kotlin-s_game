@@ -109,65 +109,19 @@ class MastermindConsole(
     }
 
     private fun makeMove() {
+        val handler = MoveHandler(
+            gameUseCases,
+            currentGame,
+            currentPlayerId,
+            currentPlayerName,
+            player1Id,
+            player2Id,
+            player1Name,
+            player2Name
+        )
+        currentGame = handler.handle()
         if (currentGame == null) {
-            println()
-            println("Ошибка: Сначала начните новую игру (выберите пункт 1)")
             return
-        }
-
-        val game = currentGame!!
-
-        if (game.status != GameStatus.IN_PROGRESS) {
-            println()
-            println("Игра уже закончена. Начните новую игру (пункт 1)")
-            currentGame = null
-            return
-        }
-
-        println()
-        println("Ход №${game.moves.size + 1} из ${MAX_MOVES}")
-        println("Ходит: $currentPlayerName")
-        println("-".repeat(30))
-        println("Доступные цвета: ${Color.entries.joinToString { it.name }}")
-        println("Пример ввода: RED, GREEN, BLUE, YELLOW")
-        print("Введите 4 цвета через запятую: ")
-
-        val input = readlnOrNull()?.trim()
-        val guess = parseCombination(input)
-
-        if (guess == null) {
-            println("Ошибка: Неверный формат или цвет. Попробуйте снова.")
-            return
-        }
-
-        try {
-            val move = gameUseCases.makeMove(game.id, currentPlayerId, guess)
-            currentGame = gameUseCases.findById(game.id)
-
-            println()
-            println("Результат хода: ")
-            println("   Черных пинов: ${move.feedback.blackPins}")
-            println("   Белых пинов: ${move.feedback.whitePins}")
-            println()
-
-            when {
-                move.feedback.blackPins == CODE_LENGTH -> {
-                    println("ПОБЕДА! Победил $currentPlayerName!")
-                    currentGame = null
-                }
-                (currentGame?.moves?.size ?: 0) >= MAX_MOVES -> {
-                    println("ПОРАЖЕНИЕ! Игроки не отгадали комбинацию")
-                    println("Секретная комбинация: ${game.secret.colors.joinToString { it.name }}")
-                    currentGame = null
-                }
-                else -> {
-                    currentPlayerId = if (currentPlayerId == player1Id) player2Id else player1Id
-                    currentPlayerName = if (currentPlayerName == player1Name) player2Name else player1Name
-                    println("Переход хода к: $currentPlayerName")
-                }
-            }
-        } catch (e: Exception) {
-            println("Ошибка: ${e.message}")
         }
     }
 
@@ -213,8 +167,8 @@ class MastermindConsole(
             games.forEachIndexed { index, game ->
                 val winner = game.winnerId
                 val result = when {
-                    winner == currentPlayerId -> "Победа! 🎉"
-                    game.status == GameStatus.LOST -> "Поражение! 😔"
+                    winner == currentPlayerId -> "Победа!"
+                    game.status == GameStatus.LOST -> "Поражение!"
                     else -> "В процессе ⏳"
                 }
                 println("${index + 1}. Игра ${game.id.take(8)} - $result (${game.moves.size} ходов)")
