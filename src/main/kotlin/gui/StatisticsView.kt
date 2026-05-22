@@ -71,7 +71,7 @@ class StatisticsView(
     private fun createRankingSection(): VBox {
         val section = VBox(10.0)
 
-        val titleLabel = Label("Топ-5 Игроков")
+        val titleLabel = Label("Топ Игроков")
         titleLabel.style = "-fx-font-weight: bold; -fx-font-size: 14px;"
 
         tableView = TableView<PlayerStats>()
