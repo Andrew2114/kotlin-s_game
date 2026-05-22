@@ -11,7 +11,6 @@ repositories {
     mavenCentral()
 }
 
-
 javafx {
     version = "20"
     modules = listOf("javafx.controls", "javafx.fxml")

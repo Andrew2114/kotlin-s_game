@@ -2,9 +2,9 @@ name: CI - Build and Test
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, hw1, hw2, hw3, hw4 ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, hw1, hw2, hw3, hw4 ]
   workflow_dispatch:
 
 jobs:
