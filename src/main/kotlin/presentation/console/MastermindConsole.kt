@@ -189,7 +189,7 @@ class MastermindConsole(
         }
 
         println()
-        println("Топ-5 игроков:")
+        println("Топ игроков:")
         println("-".repeat(30))
         ranking.take(5).forEachIndexed { index, stats ->
             println(
@@ -212,8 +212,8 @@ class MastermindConsole(
             games.forEachIndexed { index, game ->
                 val winner = game.winnerId
                 val result = when {
-                    winner == currentPlayerId -> "Победа! 🎉"
-                    game.status == GameStatus.LOST -> "Поражение! 😔"
+                    winner == currentPlayerId -> "Победа!"
+                    game.status == GameStatus.LOST -> "Поражение!"
                     else -> "В процессе ⏳"
                 }
                 println("${index + 1}. Игра ${game.id.take(8)} - $result (${game.moves.size} ходов)")
