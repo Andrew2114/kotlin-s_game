@@ -1,5 +1,4 @@
 # Class Diagram - Mastermind Game
-## Homework 1 - Architecture Design
 
 ## Class Diagram_1
 
@@ -11,7 +10,6 @@ classDiagram
     class Combination {
         <<data class>>
         +List~Color~ colors
-        +validate()
     }
     
     class Move {
@@ -19,19 +17,16 @@ classDiagram
         +int moveNumber
         +Combination guess
         +Feedback feedback
-        +timestamp
     }
     
     class Game {
-        <<entity>>
+        <<data class>>
         +String id
         +String playerId
         +String playerName
         +Combination secret
         +List~Move~ moves
         +GameStatus status
-        +addMove()
-        +isCompleted()
     }
     
     %% ============ INTERFACE ============
@@ -62,7 +57,7 @@ classDiagram
         -Game currentGame
         +makeMove()
         +startNewGame()
-        +updateUI()
+        +setupUI()
     }
     
     class HistoryView {
@@ -74,6 +69,8 @@ classDiagram
     
     %% ============ СВЯЗИ ============
     Game --> Move
+    GameUseCases ..> Game
+    GameUseCases ..> Move
     Game --> Combination
     Move --> Combination
     GameUseCases --> MastermindRules
