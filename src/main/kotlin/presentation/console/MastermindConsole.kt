@@ -33,7 +33,6 @@ class MastermindConsole(
         player2Name = readlnOrNull()?.trim()?.takeIf { it.isNotEmpty() } ?: "Player2"
         player2Id = "player_${System.currentTimeMillis()}_2"
 
-        // Инициализация MoveHandler
         moveHandler = MoveHandler(
             gameUseCases, currentPlayerId, currentPlayerName,
             player1Id, player2Id, player1Name, player2Name
