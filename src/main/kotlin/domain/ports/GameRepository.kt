@@ -1,4 +1,5 @@
 package domain.ports
+
 import domain.models.Game
 
 interface GameRepository {
@@ -8,4 +9,5 @@ interface GameRepository {
     fun update(game: Game): Game
     fun delete(id: String): Boolean
     fun findByPlayer(playerId: String): List<Game>
+    fun getAllGames(): List<Game>
 }

@@ -28,10 +28,11 @@ class MastermindRulesImpl : MastermindRules {
             }
         }
 
+        // ВАЖНО: итерируем по цветам, а не по индексам
         for (color in guessRemaining) {
             if (secretRemaining.contains(color)) {
                 whiteCnt++
-                secretRemaining.remove(color) 
+                secretRemaining.remove(color)  // remove(Object) работает в Kotlin
             }
         }
 

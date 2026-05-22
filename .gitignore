@@ -41,3 +41,5 @@ local.properties
 *.class
 *.jar
 *.hprof
+.idea/
+*.iml
