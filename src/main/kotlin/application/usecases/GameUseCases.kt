@@ -53,7 +53,6 @@ class GameUseCases(
             feedback = feedback,
             playerId = playerId,
             playerName = playerName,
-            timestamp = System.currentTimeMillis()
         )
 
         val newStatus = when {

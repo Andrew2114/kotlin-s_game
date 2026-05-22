@@ -121,8 +121,12 @@ class MastermindConsole(
         )
         currentGame = handler.handle()
         if (currentGame == null) {
+            // Игра завершена
             return
         }
+        // Обновляем текущего игрока после хода (если нужно)
+        // currentPlayerId и currentPlayerName должны обновляться внутри MoveHandler
+        // Этот код требует доработки, так как MoveHandler не возвращает обновлённые playerId/playerName
     }
 
     private fun showStatistics() {
@@ -169,7 +173,7 @@ class MastermindConsole(
                 val result = when {
                     winner == currentPlayerId -> "Победа!"
                     game.status == GameStatus.LOST -> "Поражение!"
-                    else -> "В процессе ⏳"
+                    else -> "В процессе"
                 }
                 println("${index + 1}. Игра ${game.id.take(8)} - $result (${game.moves.size} ходов)")
             }

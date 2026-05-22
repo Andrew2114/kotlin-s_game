@@ -5,6 +5,5 @@ data class Move(
     val guess: Combination,
     val feedback: Feedback,
     val playerId: String = "",
-    val playerName: String = "",
-    val timestamp: Long = System.currentTimeMillis()
+    val playerName: String = ""
 )
