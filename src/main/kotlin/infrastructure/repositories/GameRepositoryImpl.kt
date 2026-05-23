@@ -159,15 +159,13 @@ class GameRepositoryImpl(
         val guess = stringToCombination(guessStr)
         val blackPins = (moveData["black_pins"] as? Number)?.toInt() ?: 0
         val whitePins = (moveData["white_pins"] as? Number)?.toInt() ?: 0
-        val timestamp = (moveData["timestamp"] as? Number)?.toLong() ?: System.currentTimeMillis()
 
         return Move(
             moveNumber = moveNumber,
             guess = guess,
             feedback = Feedback(blackPins, whitePins),
             playerId = playerId,
-            playerName = playerName,
-            timestamp = timestamp
+            playerName = playerName
         )
     }
 
