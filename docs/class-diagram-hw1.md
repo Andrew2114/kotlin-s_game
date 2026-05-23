@@ -19,19 +19,16 @@ classDiagram
         +int moveNumber
         +Combination guess
         +Feedback feedback
-        +timestamp
     }
     
     class Game {
-        <<entity>>
+        <<data class>>
         +String id
         +String playerId
         +String playerName
         +Combination secret
         +List~Move~ moves
         +GameStatus status
-        +addMove()
-        +isCompleted()
     }
     
     %% ============ INTERFACE ============
