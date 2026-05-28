@@ -9,7 +9,7 @@ class GameUseCases(
     private val rules: MastermindRules,
     private val repo: GameRepository
 ) {
-    fun createGame(
+    fun createGameForTwoPlayers(
         player1Id: String,
         player1Name: String,
         player2Id: String,
@@ -52,7 +52,7 @@ class GameUseCases(
             guess = guess,
             feedback = feedback,
             playerId = playerId,
-            playerName = playerName,
+            playerName = playerName
         )
 
         val newStatus = when {
@@ -61,7 +61,11 @@ class GameUseCases(
             else -> GameStatus.IN_PROGRESS
         }
 
-        val winnerId = if (feedback.blackPins == MastermindRules.CODE_LENGTH) playerId else game.winnerId
+        val winnerId = when {
+            feedback.blackPins == MastermindRules.CODE_LENGTH -> playerId
+            moveNumber >= MastermindRules.MAX_MOVES -> game.player1Id
+            else -> game.winnerId
+        }
 
         val updatedGame = game.copy(
             moves = game.moves + move,

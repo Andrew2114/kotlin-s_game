@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS players (
                                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+
 CREATE TABLE IF NOT EXISTS games (
                                      id TEXT PRIMARY KEY,
                                      player1_id TEXT NOT NULL,
