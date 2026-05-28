@@ -2,6 +2,8 @@ package gui
 
 import application.usecases.GameUseCases
 import application.usecases.StatisticsUseCases
+import domain.models.Combination
+import domain.models.Color
 import infrastructure.database.DatabaseManager
 import infrastructure.repositories.GameRepositoryImpl
 import infrastructure.repositories.PlayerRepository
@@ -19,34 +21,54 @@ class MainApp : Application() {
     private lateinit var statisticsUseCases: StatisticsUseCases
     private lateinit var player1: Player
     private lateinit var player2: Player
-    private var currentPlayerIndex = 0
 
-    private lateinit var statisticsView: StatisticsView
     private lateinit var gameView: GameView
+    private lateinit var statisticsView: StatisticsView
     private lateinit var historyView: HistoryView
     private lateinit var tabPane: TabPane
     private lateinit var statsTab: Tab
     private lateinit var historyTab: Tab
 
     override fun start(primaryStage: Stage) {
+        val name1 = askPlayerName("Введите имя первого игрока (загадывает комбинацию)")
+        if (name1.isNullOrBlank()) {
+            showError("Имя первого игрока не введено.")
+            primaryStage.close()
+            return
+        }
+
+        val name2 = askPlayerName("Введите имя второго игрока (отгадывает)")
+        if (name2.isNullOrBlank()) {
+            showError("Имя второго игрока не введено.")
+            primaryStage.close()
+            return
+        }
+
         val databaseManager = DatabaseManager()
         val repository = GameRepositoryImpl(databaseManager)
-        val playerRepository = PlayerRepository(databaseManager)
         val rules = MastermindRulesImpl()
+        val playerRepository = PlayerRepository(databaseManager)
 
         gameUseCases = GameUseCases(rules, repository)
         statisticsUseCases = StatisticsUseCases(repository)
 
-        val players = selectTwoPlayers(playerRepository)
-        if (players == null) {
+        player1 = getOrCreatePlayer(name1, playerRepository)
+        player2 = getOrCreatePlayer(name2, playerRepository)
+
+        val secret = askSecretCombination("${player1.name}, загадайте секретную комбинацию!")
+        if (secret == null) {
+            showError("Секретная комбинация не введена.")
             primaryStage.close()
             return
         }
-        player1 = players.first
-        player2 = players.second
 
-        val currentPlayer = player1
-        primaryStage.title = "Mastermind Admin - Ходит: ${currentPlayer.name}"
+        val currentGame = gameUseCases.createGameForTwoPlayers(
+            player1.id, player1.name,
+            player2.id, player2.name,
+            secret
+        )
+
+        primaryStage.title = "Mastermind - Отгадывает: ${player2.name}"
 
         tabPane = TabPane()
 
@@ -56,7 +78,7 @@ class MainApp : Application() {
             gameUseCases = gameUseCases,
             player1 = player1,
             player2 = player2,
-            onPlayerSwitch = { switchPlayer(primaryStage) }
+            initialGame = currentGame
         )
         gameTab.content = gameView.root
 
@@ -64,23 +86,13 @@ class MainApp : Application() {
         statsTab.isClosable = false
         updateStatisticsView()
         statsTab.content = statisticsView.root
-
-        statsTab.setOnSelectionChanged {
-            if (statsTab.isSelected) {
-                updateStatisticsView()
-            }
-        }
+        statsTab.setOnSelectionChanged { if (statsTab.isSelected) updateStatisticsView() }
 
         historyTab = Tab("История")
         historyTab.isClosable = false
         updateHistoryView()
         historyTab.content = historyView.root
-
-        historyTab.setOnSelectionChanged {
-            if (historyTab.isSelected) {
-                updateHistoryView()
-            }
-        }
+        historyTab.setOnSelectionChanged { if (historyTab.isSelected) updateHistoryView() }
 
         tabPane.tabs.addAll(gameTab, statsTab, historyTab)
 
@@ -89,69 +101,56 @@ class MainApp : Application() {
         primaryStage.show()
     }
 
-    private fun selectTwoPlayers(playerRepository: PlayerRepository): Pair<Player, Player>? {
-        val existingPlayers = playerRepository.findAll()
-
-        fun selectPlayer(title: String): Player? {
-            if (existingPlayers.isEmpty()) {
-                val name = askPlayerName(title) ?: return null
-                val id = "player_${System.currentTimeMillis()}"
-                return Player(id, name)
-            } else {
-                val choiceDialog = ChoiceDialog("Новый игрок", listOf("Новый игрок") + existingPlayers.map { it.name })
-                choiceDialog.title = "Mastermind"
-                choiceDialog.headerText = title
-                choiceDialog.contentText = "Выберите игрока:"
-                val result = choiceDialog.showAndWait()
-                return when {
-                    result.isEmpty -> null
-                    result.get() == "Новый игрок" -> {
-                        val name = askPlayerName(title) ?: return null
-                        val id = "player_${System.currentTimeMillis()}"
-                        Player(id, name)
-                    }
-                    else -> {
-                        playerRepository.findByName(result.get())
-                    }
-                }
-            }
+    private fun getOrCreatePlayer(name: String, playerRepository: PlayerRepository): Player {
+        val existingPlayer = playerRepository.findByName(name)
+        if (existingPlayer != null) {
+            println("Игрок $name уже существует, загружаем из БД")
+            return existingPlayer
         }
+        val id = "player_${System.currentTimeMillis()}"
+        val newPlayer = Player(id, name)
+        playerRepository.save(newPlayer)
+        return newPlayer
+    }
 
-        val p1 = selectPlayer("Выберите первого игрока") ?: return null
-        val p2 = selectPlayer("Выберите второго игрока") ?: return null
+    private fun askSecretCombination(title: String): Combination? {
+        val dialog = TextInputDialog()
+        dialog.title = "Секретная комбинация"
+        dialog.headerText = title
+        dialog.contentText = "Введите 4 цвета через запятую\nПример: RED,GREEN,BLUE,YELLOW"
+        val result = dialog.showAndWait()
+        val input = result.orElse(null)?.trim()?.uppercase()
+        return parseCombination(input)
+    }
 
-        if (playerRepository.findByName(p1.name) == null) {
-            playerRepository.save(p1)
+    private fun parseCombination(input: String?): Combination? {
+        if (input.isNullOrBlank()) return null
+        val parts = input.split(",").map { it.trim() }
+        if (parts.size != 4) return null
+        val colors = parts.mapNotNull { colorName ->
+            Color.entries.find { it.name == colorName }
         }
-        if (playerRepository.findByName(p2.name) == null && p1.name != p2.name) {
-            playerRepository.save(p2)
-        }
-
-        return Pair(p1, p2)
+        return if (colors.size == 4) Combination(colors) else null
     }
 
     private fun updateStatisticsView() {
-        val currentPlayer = if (currentPlayerIndex == 0) player1 else player2
+        val currentPlayer = player2
         statisticsView = StatisticsView(
             currentPlayerId = currentPlayer.id,
             currentPlayerName = currentPlayer.name,
             statisticsUseCases = statisticsUseCases
         )
-        if (::statsTab.isInitialized) {
-            statsTab.content = statisticsView.root
-        }
+        if (::statsTab.isInitialized) statsTab.content = statisticsView.root
     }
 
     private fun updateHistoryView() {
-        val currentPlayer = if (currentPlayerIndex == 0) player1 else player2
+        val currentPlayer = player2
         historyView = HistoryView(
             gameUseCases = gameUseCases,
             currentPlayerId = currentPlayer.id,
             currentPlayerName = currentPlayer.name
         )
-        if (::historyTab.isInitialized) {
-            historyTab.content = historyView.root
-        }
+        if (::historyTab.isInitialized) historyTab.content = historyView.root
     }
 
     private fun askPlayerName(title: String): String? {
@@ -159,16 +158,16 @@ class MainApp : Application() {
         dialog.title = "Игрок"
         dialog.headerText = title
         dialog.contentText = "Введите имя игрока:"
-        val result = dialog.showAndWait()
-        return result.orElse(null)?.takeIf { it.isNotBlank() }
+        return dialog.showAndWait().orElse(null)?.takeIf { it.isNotBlank() }
     }
 
-    private fun switchPlayer(primaryStage: Stage) {
-        currentPlayerIndex = (currentPlayerIndex + 1) % 2
-        val currentPlayer = if (currentPlayerIndex == 0) player1 else player2
-        primaryStage.title = "Mastermind Admin - Ходит: ${currentPlayer.name}"
-        updateStatisticsView()
-        updateHistoryView()
+    private fun showError(message: String) {
+        Alert(Alert.AlertType.ERROR).apply {
+            title = "Ошибка"
+            headerText = null
+            contentText = message
+            showAndWait()
+        }
     }
 }
 

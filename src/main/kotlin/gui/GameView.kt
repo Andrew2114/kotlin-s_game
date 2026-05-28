@@ -2,9 +2,9 @@ package gui
 
 import application.usecases.GameUseCases
 import domain.models.*
-import infrastructure.repositories.Player
 import domain.rules.MastermindRules.Companion.CODE_LENGTH
 import domain.rules.MastermindRules.Companion.MAX_MOVES
+import infrastructure.repositories.Player
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.control.*
@@ -16,20 +16,19 @@ class GameView(
     private val gameUseCases: GameUseCases,
     private val player1: Player,
     private val player2: Player,
-    private val onPlayerSwitch: () -> Unit
+    initialGame: Game
 ) {
     val root = BorderPane()
 
-    private var currentGame: Game? = null
-    private var currentPlayer = player1
-    private var currentPlayerName = player1.name
-    private var currentSecret: Combination? = null
+    private var currentGame: Game? = initialGame
+    private val currentPlayer = player2
+    private val currentPlayerName = player2.name
 
     private val movesList = ListView<String>()
     private val feedbackLabel = Label("")
     private val movesCountLabel = Label("Ходов: 0")
     private val statusLabel = Label("")
-    private val currentPlayerLabel = Label("Ходит: ${player1.name}")
+    private val currentPlayerLabel = Label("Отгадывает: ${player2.name}")
 
     private val selectedColors = mutableListOf<Color?>()
     private lateinit var colorPositions: List<ColorPosition>
@@ -37,6 +36,7 @@ class GameView(
 
     init {
         setupUI()
+        updateGameUI()
     }
 
     private fun setupUI() {
@@ -107,9 +107,7 @@ class GameView(
         }
 
         val submitButton = Button("Сделать ход")
-        submitButton.setOnAction {
-            makeMove()
-        }
+        submitButton.setOnAction { makeMove() }
 
         vbox.children.addAll(
             colorPanel,
@@ -130,53 +128,6 @@ class GameView(
         if (::colorPositions.isInitialized) {
             colorPositions.forEach { it.locked = !enabled }
         }
-    }
-
-    private fun switchPlayer() {
-        if (!isGameActive()) return
-
-        currentPlayer = if (currentPlayer == player1) player2 else player1
-        currentPlayerName = currentPlayer.name
-        currentPlayerLabel.text = "Ходит: ${currentPlayer.name}"
-        onPlayerSwitch()
-        clearSelectedColors()
-    }
-
-    private fun askSecretCombination(): Combination? {
-        val dialog = TextInputDialog()
-        dialog.title = "Секретная комбинация"
-        dialog.headerText = "Введите секретную комбинацию из 4 цветов"
-        dialog.contentText = "Доступные цвета: ${Color.entries.joinToString { it.name }}\nПример: RED,GREEN,BLUE,YELLOW"
-
-        val result = dialog.showAndWait()
-        val input = result.orElse(null)?.trim()?.uppercase()
-
-        if (input.isNullOrBlank()) return null
-
-        val parts = input.split(",").map { it.trim() }
-        if (parts.size != 4) {
-            showError("Нужно ввести ровно 4 цвета!")
-            return null
-        }
-
-        val colors = parts.mapNotNull { colorName ->
-            Color.entries.find { it.name == colorName }
-        }
-
-        if (colors.size != 4) {
-            showError("Один из цветов не распознан")
-            return null
-        }
-
-        return Combination(colors)
-    }
-
-    private fun showError(message: String) {
-        val alert = Alert(Alert.AlertType.ERROR)
-        alert.title = "Ошибка"
-        alert.headerText = null
-        alert.contentText = message
-        alert.showAndWait()
     }
 
     private fun createColorButton(color: Color): Button {
@@ -231,7 +182,7 @@ class GameView(
             val move = gameUseCases.makeMove(current.id, currentPlayer.id, guess)
             currentGame = gameUseCases.findById(current.id)
 
-            val moveText = "Ход ${move.moveNumber} (${currentPlayerName}): ${colors.joinToString { it.name }} → Ч:${move.feedback.blackPins} Б:${move.feedback.whitePins}"
+            val moveText = "Ход ${move.moveNumber}: ${colors.joinToString { it.name }} → Ч:${move.feedback.blackPins} Б:${move.feedback.whitePins}"
             movesList.items.add(moveText)
 
             feedbackLabel.text = "Результат: чёрных ${move.feedback.blackPins}, белых ${move.feedback.whitePins}"
@@ -241,20 +192,19 @@ class GameView(
 
             when {
                 move.feedback.blackPins == CODE_LENGTH -> {
-                    statusLabel.text = "ПОБЕДА! Победил ${currentPlayerName}!"
+                    statusLabel.text = "ПОБЕДА! ${currentPlayerName} отгадал комбинацию!"
                     feedbackLabel.text = "Комбинация отгадана за ${move.moveNumber} ходов!"
                     currentGame = null
                     setControlsEnabled(false)
                 }
                 (currentGame?.moves?.size ?: 0) >= MAX_MOVES -> {
-                    statusLabel.text = "ПОРАЖЕНИЕ! Игроки не отгадали комбинацию"
-                    feedbackLabel.text = "Секретная комбинация: ${currentSecret?.colors?.joinToString { it.name }}"
+                    statusLabel.text = "ПОРАЖЕНИЕ! ${currentPlayerName} не отгадал комбинацию. Победил ${player1.name}!"
+                    feedbackLabel.text = "Секретная комбинация: ${currentGame?.secret?.colors?.joinToString { it.name }}"
                     currentGame = null
                     setControlsEnabled(false)
                 }
                 else -> {
-                    statusLabel.text = "В процессе"
-                    switchPlayer()
+                    statusLabel.text = "В процессе. Ходит: $currentPlayerName"
                 }
             }
 
@@ -274,30 +224,52 @@ class GameView(
     }
 
     private fun startNewGame() {
-        val secret = askSecretCombination()
+        val dialog = TextInputDialog()
+        dialog.title = "Секретная комбинация"
+        dialog.headerText = "${player1.name}, загадайте секретную комбинацию!"
+        dialog.contentText = "Введите 4 цвета через запятую\nПример: RED,GREEN,BLUE,YELLOW"
+
+        val result = dialog.showAndWait()
+        val input = result.orElse(null)?.trim()?.uppercase()
+        val secret = parseCombination(input)
+
         if (secret == null) {
-            feedbackLabel.text = "Новая игра не создана: комбинация не введена"
+            feedbackLabel.text = "Неверная комбинация! Игра не создана."
             return
         }
-        currentSecret = secret
 
-        currentGame = gameUseCases.createGame(
+        currentGame = gameUseCases.createGameForTwoPlayers(
             player1.id, player1.name,
             player2.id, player2.name,
             secret
         )
 
-        currentPlayer = player1
-        currentPlayerName = player1.name
-        currentPlayerLabel.text = "Ходит: ${currentPlayer.name}"
-
         clearSelectedColors()
         movesList.items.clear()
-        feedbackLabel.text = "Игра создана! Секретная комбинация задана администратором."
+        feedbackLabel.text = "Игра создана! ${player2.name}, попробуйте отгадать комбинацию."
         statusLabel.text = "В процессе"
         movesCountLabel.text = "Ходов: 0"
 
         setControlsEnabled(true)
+    }
+
+    private fun parseCombination(input: String?): Combination? {
+        if (input.isNullOrBlank()) return null
+        val parts = input.split(",").map { it.trim() }
+        if (parts.size != CODE_LENGTH) return null
+        val colors = parts.mapNotNull { colorName ->
+            Color.entries.find { it.name == colorName }
+        }
+        return if (colors.size == CODE_LENGTH) Combination(colors) else null
+    }
+
+    private fun updateGameUI() {
+        movesCountLabel.text = "Ходов: ${currentGame?.moves?.size ?: 0}"
+        statusLabel.text = when (currentGame?.status) {
+            GameStatus.WON -> "ПОБЕДА!"
+            GameStatus.LOST -> "ПОРАЖЕНИЕ"
+            else -> "В процессе"
+        }
     }
 
     private fun getColorStyle(color: Color): String {
@@ -326,9 +298,7 @@ class GameView(
             colorRect.arcHeight = 10.0
             colorRect.stroke = JavaFxColor.BLACK
             colorRect.strokeWidth = 1.0
-
             label.style = "-fx-font-size: 16px; -fx-font-weight: bold;"
-
             children.addAll(colorRect, label)
 
             setOnMouseClicked {

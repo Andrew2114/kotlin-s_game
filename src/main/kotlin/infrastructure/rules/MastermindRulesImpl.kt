@@ -4,22 +4,22 @@ import domain.models.*
 import domain.rules.MastermindRules
 
 class MastermindRulesImpl : MastermindRules {
+
     override fun calculateFeedback(secret: Combination, guess: Combination): Feedback {
-        var blackCnt = 0
-        var whiteCnt = 0
+        var blackPins = 0
+        var whitePins = 0
 
         val secretList = secret.colors.toMutableList()
         val guessList = guess.colors.toMutableList()
-
-        val indicesToRemove = mutableListOf<Int>()
+        val toRemove = mutableListOf<Int>()
         for (i in secretList.indices) {
             if (secretList[i] == guessList[i]) {
-                blackCnt++
-                indicesToRemove.add(i)
+                blackPins++
+                toRemove.add(i)
             }
         }
 
-        for (i in indicesToRemove.sortedDescending()) {
+        for (i in toRemove.sortedDescending()) {
             secretList.removeAt(i)
             guessList.removeAt(i)
         }
@@ -30,12 +30,12 @@ class MastermindRulesImpl : MastermindRules {
         for (color in guessRemaining) {
             val index = secretRemaining.indexOf(color)
             if (index != -1) {
-                whiteCnt++
+                whitePins++
                 secretRemaining.removeAt(index)
             }
         }
 
-        return Feedback(blackCnt, whiteCnt)
+        return Feedback(blackPins, whitePins)
     }
 
     override fun validateGuess(guess: Combination): Boolean {
