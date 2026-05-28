@@ -97,6 +97,7 @@ class DatabaseManager(private val dbUrl: String = "jdbc:sqlite:mastermind.db") {
             )
         """.trimIndent()
 
+
         executeUpdate(createPlayersTable)
         executeUpdate(createGamesTable)
         executeUpdate(createMovesTable)

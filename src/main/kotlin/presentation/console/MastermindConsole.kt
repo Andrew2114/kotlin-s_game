@@ -82,7 +82,7 @@ class MastermindConsole(
             return
         }
 
-        currentGame = gameUseCases.createGame(
+        currentGame = gameUseCases.createGameForTwoPlayers(
             player1Id, player1Name,
             player2Id, player2Name,
             secret
@@ -121,12 +121,8 @@ class MastermindConsole(
         )
         currentGame = handler.handle()
         if (currentGame == null) {
-            // Игра завершена
             return
         }
-        // Обновляем текущего игрока после хода (если нужно)
-        // currentPlayerId и currentPlayerName должны обновляться внутри MoveHandler
-        // Этот код требует доработки, так как MoveHandler не возвращает обновлённые playerId/playerName
     }
 
     private fun showStatistics() {

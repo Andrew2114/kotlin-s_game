@@ -1,34 +1,25 @@
 package infrastructure.rules
 
-import domain.models.Combination
-import domain.models.Color
-import domain.models.Feedback
-import domain.models.Game
-import domain.models.GameStatus
+import domain.models.*
 import domain.rules.MastermindRules
 
 class MastermindRulesImpl : MastermindRules {
 
     override fun calculateFeedback(secret: Combination, guess: Combination): Feedback {
-        var blackCnt = 0
-        var whiteCnt = 0
+        var blackPins = 0
+        var whitePins = 0
 
-        val secretList = secret.colors
-        val guessList = guess.colors
-
-        val secretRemaining = mutableListOf<Color>()
-        val guessRemaining = mutableListOf<Color>()
-
+        val secretList = secret.colors.toMutableList()
+        val guessList = guess.colors.toMutableList()
+        val toRemove = mutableListOf<Int>()
         for (i in secretList.indices) {
             if (secretList[i] == guessList[i]) {
-                blackCnt++
-            } else {
-                secretRemaining.add(secretList[i])
-                guessRemaining.add(guessList[i])
+                blackPins++
+                toRemove.add(i)
             }
         }
 
-        indicesToRemove.sortedDescending().forEach { i ->
+        for (i in toRemove.sortedDescending()) {
             secretList.removeAt(i)
             guessList.removeAt(i)
         }
@@ -37,36 +28,23 @@ class MastermindRulesImpl : MastermindRules {
         val guessRemaining = guessList.toMutableList()
 
         for (color in guessRemaining) {
-            if (secretRemaining.contains(color)) {
-                whiteCnt++
-
+            val index = secretRemaining.indexOf(color)
+            if (index != -1) {
+                whitePins++
                 secretRemaining.removeAt(index)
-                secretRemaining.remove(color) 
-                secretRemaining.remove(color) 
             }
         }
 
-        return Feedback(blackCnt, whiteCnt)
+        return Feedback(blackPins, whitePins)
     }
 
     override fun validateGuess(guess: Combination): Boolean {
-        if (guess.colors.size != MastermindRules.CODE_LENGTH) {
-            return false
-        }
-
+        if (guess.colors.size != MastermindRules.CODE_LENGTH) return false
         val validColors = Color.entries.toSet()
         return guess.colors.all { it in validColors }
     }
 
     override fun isGameOver(game: Game): Boolean {
-        if (game.status != GameStatus.IN_PROGRESS) {
-            return true
-        }
-
-        if (game.moves.size >= MastermindRules.MAX_MOVES) {
-            return true
-        }
-
-        return false
+        return game.status != GameStatus.IN_PROGRESS || game.moves.size >= MastermindRules.MAX_MOVES
     }
 }

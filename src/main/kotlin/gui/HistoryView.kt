@@ -2,7 +2,6 @@ package gui
 
 import application.usecases.GameUseCases
 import domain.models.Game
-import infrastructure.repositories.Player
 import domain.models.GameStatus
 import javafx.scene.control.*
 import javafx.scene.layout.VBox
@@ -59,8 +58,16 @@ class HistoryView(
         alert.headerText = "Игра ${game.id.take(8)}"
 
         val winnerText = when {
-            game.winnerId != null -> "Победитель: ${if (game.winnerId == game.player1Id) game.player1Name else game.player2Name}"
-            game.status == GameStatus.LOST -> "Победителей нет (исчерпаны ходы)"
+            game.winnerId != null -> {
+                if (game.winnerId == game.player1Id) {
+                    "Победитель: ${game.player1Name} (загадывающий)"
+                } else {
+                    "Победитель: ${game.player2Name} (отгадывающий)"
+                }
+            }
+            game.status == GameStatus.LOST -> {
+                "Победитель: ${game.player1Name} (загадывающий) — второй игрок не отгадал"
+            }
             else -> "Игра не завершена"
         }
 
@@ -68,13 +75,13 @@ class HistoryView(
             "   Нет ходов"
         } else {
             game.moves.joinToString("\n") { move ->
-                "   Ход ${move.moveNumber} (${move.playerName}): ${move.guess.colors.joinToString { it.name }} → " +
+                "   Ход ${move.moveNumber}: ${move.guess.colors.joinToString { it.name }} → " +
                         "Чёрных: ${move.feedback.blackPins}, Белых: ${move.feedback.whitePins}"
             }
         }
 
         val content = """
-            Участники: ${game.player1Name} vs ${game.player2Name}
+            Участники: ${game.player1Name} (загадывает) vs ${game.player2Name} (отгадывает)
             $winnerText
             Секретная комбинация: ${game.secret.colors.joinToString { it.name }}
             Всего ходов: ${game.moves.size}
@@ -99,10 +106,15 @@ class HistoryView(
 
             val result = when {
                 game.winnerId != null -> {
-                    val winner = if (game.winnerId == game.player1Id) game.player1Name else game.player2Name
-                    "Победа! - $winner"
+                    if (game.winnerId == game.player1Id) {
+                        "Победа загадывающего - ${game.player1Name}"
+                    } else {
+                        "Победа отгадывающего - ${game.player2Name}"
+                    }
                 }
-                game.status == GameStatus.LOST -> "Поражение! (все ходы исчерпаны)"
+                game.status == GameStatus.LOST -> {
+                    "Победа загадывающего - ${game.player1Name} (второй не отгадал)"
+                }
                 else -> "В процессе"
             }
 
